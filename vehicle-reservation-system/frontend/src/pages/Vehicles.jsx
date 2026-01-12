@@ -266,11 +266,6 @@ export default function Vehicles() {
                 <div className="fleet-content">
                   <div className="fleet-header">
                     <h2>{vehicle.name}</h2>
-                    <div className="fleet-price">
-                      <span className="price-label">From</span>
-                      <span className="price-amount">${vehicle.pricePerDay}</span>
-                      <span className="price-unit">/ day</span>
-                    </div>
                   </div>
                   
                   <p className="fleet-description">

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { VEHICLE_TYPES } from "../constants/vehicleTypes";
 
 export default function VehicleCard({ vehicle, searchParams }) {
-  const { id, name, type, capacity, pricePerDay, imageUrl } = vehicle;
+  const { id, name, type, capacity, imageUrl } = vehicle;
 
   // Construct query string if params exist
   const query = new URLSearchParams();
@@ -19,10 +19,6 @@ export default function VehicleCard({ vehicle, searchParams }) {
       <div className="vehicle-info">
         <div className="vehicle-header">
           <h3>{name}</h3>
-          <div className="vehicle-price">
-            <span className="price-amount">${pricePerDay}</span>
-            <span className="price-unit">/ day</span>
-          </div>
         </div>
         
         <div className="vehicle-specs">
