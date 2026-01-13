@@ -38,7 +38,7 @@ export default function AdminDashboard() {
   };
 
   const handleApprove = async (booking) => {
-    if (!window.confirm("Approve this booking?")) return;
+    // Non-blocking interaction
     setProcessingId(booking.id);
     setActionError(null);
 
@@ -46,8 +46,8 @@ export default function AdminDashboard() {
       // RE-CHECK CONFLICTS
       const existingBookings = await fetchBookingsForVehicle(booking.vehicleId);
       // Filter out self if somehow it's in the list
-      const conflicts = existingBookings.filter(b => 
-        b.id !== booking.id && 
+      const conflicts = existingBookings.filter(b =>
+        b.id !== booking.id &&
         overlaps(booking.startDate, booking.endDate, b.startDate, b.endDate)
       );
 
@@ -56,11 +56,12 @@ export default function AdminDashboard() {
       }
 
       await updateBookingStatus(booking.id, 'APPROVED', adminNote);
-      alert("Booking approved.");
+      console.log("Booking approved successfully");
       setExpandedId(null);
       setAdminNote("");
       loadBookings();
     } catch (err) {
+      console.error("Approve error:", err);
       setActionError(err.message);
     } finally {
       setProcessingId(null);
@@ -68,17 +69,18 @@ export default function AdminDashboard() {
   };
 
   const handleReject = async (bookingId) => {
-    if (!window.confirm("Reject this booking?")) return;
+    // Non-blocking interaction
     setProcessingId(bookingId);
     setActionError(null);
 
     try {
       await updateBookingStatus(bookingId, 'REJECTED', adminNote);
-      alert("Booking rejected.");
+      console.log("Booking rejected successfully");
       setExpandedId(null);
       setAdminNote("");
       loadBookings();
     } catch (err) {
+      console.error("Reject error:", err);
       setActionError(err.message);
     } finally {
       setProcessingId(null);
@@ -96,7 +98,7 @@ export default function AdminDashboard() {
   };
 
   const getStatusIcon = () => {
-    switch(status) {
+    switch (status) {
       case 'PENDING':
         return (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -192,9 +194,9 @@ export default function AdminDashboard() {
 
         <div className="tabs-modern">
           {['PENDING', 'APPROVED', 'REJECTED'].map(s => (
-            <button 
-              key={s} 
-              className={status === s ? 'tab-btn active' : 'tab-btn'} 
+            <button
+              key={s}
+              className={status === s ? 'tab-btn active' : 'tab-btn'}
               onClick={() => setStatus(s)}
             >
               {s === status && getStatusIcon()}
@@ -237,8 +239,8 @@ export default function AdminDashboard() {
                     <div className="booking-main-info">
                       <div className="vehicle-name">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1"/>
-                          <polygon points="12 15 17 21 7 21 12 15"/>
+                          <path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1" />
+                          <polygon points="12 15 17 21 7 21 12 15" />
                         </svg>
                         <strong>{b.vehicleName}</strong>
                       </div>
@@ -263,7 +265,7 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                     <div className="expand-icon">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{transform: expandedId === b.id ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.3s'}}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: expandedId === b.id ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.3s' }}>
                         <polyline points="6 9 12 15 18 9"></polyline>
                       </svg>
                     </div>
@@ -291,16 +293,6 @@ export default function AdminDashboard() {
                             <span className="detail-value">{b.phoneNumber || b.phone || 'N/A'}</span>
                           </div>
                         </div>
-                        <div className="detail-item">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="12" y1="1" x2="12" y2="23"></line>
-                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                          </svg>
-                          <div>
-                            <span className="detail-label">Total Price</span>
-                            <span className="detail-value price">${b.totalPrice}</span>
-                          </div>
-                        </div>
                       </div>
 
                       {b.notes && (
@@ -319,15 +311,15 @@ export default function AdminDashboard() {
 
                       {status === 'PENDING' && (
                         <div className="admin-actions-modern">
-                          <textarea 
+                          <textarea
                             placeholder="Add a note for this booking (optional)"
                             value={adminNote}
                             onChange={e => setAdminNote(e.target.value)}
                             rows="3"
                           />
                           <div className="action-buttons-modern">
-                            <button 
-                              className="btn-approve" 
+                            <button
+                              className="btn-approve"
                               onClick={() => handleApprove(b)}
                               disabled={processingId === b.id}
                             >
@@ -337,8 +329,8 @@ export default function AdminDashboard() {
                               </svg>
                               {processingId === b.id ? 'Processing...' : 'Approve'}
                             </button>
-                            <button 
-                              className="btn-reject" 
+                            <button
+                              className="btn-reject"
                               onClick={() => handleReject(b.id)}
                               disabled={processingId === b.id}
                             >

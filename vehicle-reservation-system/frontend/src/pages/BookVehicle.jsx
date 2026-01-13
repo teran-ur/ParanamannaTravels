@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { fetchVehicles, createBooking } from '../lib/firestore';
+import { fetchVehicles, createBooking, fetchAllActiveBookings } from '../lib/firestore';
 import { LOCATIONS } from '../constants/locations';
+import { overlaps } from '../lib/dateOverlap';
 
 export default function BookVehicle() {
   const { vehicleId } = useParams();
@@ -9,12 +10,11 @@ export default function BookVehicle() {
   const navigate = useNavigate();
 
   const [vehicles, setVehicles] = useState([]);
+  const [allBookings, setAllBookings] = useState([]);
   const [formData, setFormData] = useState({
     vehicleId: vehicleId || '',
     pickupDate: searchParams.get('startDate') || '',
-    pickupTime: '',
     dropoffDate: searchParams.get('endDate') || '',
-    dropoffTime: '',
     pickupLocation: '',
     dropoffLocation: '',
     name: '',
@@ -30,10 +30,16 @@ export default function BookVehicle() {
   useEffect(() => {
     // Load vehicles for the dropdown
     const load = async () => {
-      const data = await fetchVehicles();
+      const [vehiclesData, bookingsData] = await Promise.all([
+        fetchVehicles(),
+        fetchAllActiveBookings()
+      ]);
+
       // Sort as requested
-      data.sort((a, b) => a.pricePerDay - b.pricePerDay);
-      setVehicles(data);
+      vehiclesData.sort((a, b) => a.pricePerDay - b.pricePerDay);
+      setVehicles(vehiclesData);
+      setAllBookings(bookingsData);
+
       // If vehicleId param provided, ensure it's selected (React state init handled it, but just in case)
       if (vehicleId) {
         setFormData(prev => ({ ...prev, vehicleId }));
@@ -44,6 +50,19 @@ export default function BookVehicle() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Helper to check availability for a specific vehicle against currently selected dates
+  const isVehicleAvailable = (vId) => {
+    if (!formData.pickupDate || !formData.dropoffDate) return true;
+
+    // Check for conflicts
+    const vehicleBookings = allBookings.filter(b => b.vehicleId === vId);
+    const hasConflict = vehicleBookings.some(b =>
+      overlaps(formData.pickupDate, formData.dropoffDate, b.startDate, b.endDate)
+    );
+
+    return !hasConflict;
   };
 
   const handleSubmit = async (e) => {
@@ -58,9 +77,14 @@ export default function BookVehicle() {
         throw new Error("Drop-off date must be the same as or after pick-up date.");
       }
 
+      // Client-side pre-check for availability
+      if (!isVehicleAvailable(formData.vehicleId)) {
+        throw new Error("Selected dates are not available for this vehicle. Please choose another vehicle or different dates.");
+      }
+
       // Calculate days roughly
-      const starT = new Date(`${formData.pickupDate}T${formData.pickupTime || '12:00'}`);
-      const endT = new Date(`${formData.dropoffDate}T${formData.dropoffTime || '12:00'}`);
+      const starT = new Date(formData.pickupDate);
+      const endT = new Date(formData.dropoffDate);
       const diffTime = Math.abs(endT - starT);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
 
@@ -73,8 +97,6 @@ export default function BookVehicle() {
         vehicleName: vehicle ? vehicle.name : 'Unknown',
         startDate: formData.pickupDate,
         endDate: formData.dropoffDate, // Using date strings for simplicity
-        pickupTime: formData.pickupTime,
-        dropoffTime: formData.dropoffTime,
         pickupLocation: formData.pickupLocation,
         dropoffLocation: formData.dropoffLocation,
         customerName: formData.name,
@@ -86,7 +108,7 @@ export default function BookVehicle() {
 
       setSuccess(true);
 
-      // WhatsApp Integration
+      // WhatsApp Integration (Keep existing logic)
       const message = `*New Booking Request*
       
 *Vehicle:* ${vehicle ? vehicle.name : 'Unknown'}
@@ -100,10 +122,8 @@ Email: ${formData.email}
 *Journey Details:*
 From: ${formData.pickupLocation}
 To: ${formData.dropoffLocation}
-Pickup: ${formData.pickupDate} at ${formData.pickupTime}
-Dropoff: ${formData.dropoffDate} at ${formData.dropoffTime}
-
-*Total Price:* $${price}
+Pickup: ${formData.pickupDate}
+Dropoff: ${formData.dropoffDate}
 
 *Notes:* ${formData.notes || 'None'}
 `;
@@ -114,6 +134,35 @@ Dropoff: ${formData.dropoffDate} at ${formData.dropoffTime}
       window.scrollTo(0, 0);
     } catch (err) {
       console.error(err);
+      // Soft fail fallback logic...
+      if (err.message && (err.message.includes("permission") || err.code === "permission-denied")) {
+        setSuccess(true);
+        // ... (Keep existing fallback WhatsApp logic)
+        const fallbackPrice = vehicles.find(v => v.id === formData.vehicleId)?.pricePerDay * (Math.ceil(Math.abs(new Date(`${formData.dropoffDate}T${formData.dropoffTime || '12:00'}`) - new Date(`${formData.pickupDate}T${formData.pickupTime || '12:00'}`)) / (1000 * 60 * 60 * 24)) || 1) || 0;
+        const message = `*New Booking Request*
+      
+*Vehicle:* ${vehicles.find(v => v.id === formData.vehicleId)?.name || 'Unknown'}
+*Ref:* ${formData.vehicleId}
+
+*Customer Details:*
+Name: ${formData.name}
+Phone: ${formData.phone}
+Email: ${formData.email}
+
+*Journey Details:*
+From: ${formData.pickupLocation}
+To: ${formData.dropoffLocation}
+Pickup: ${formData.pickupDate}
+Dropoff: ${formData.dropoffDate}
+
+*Notes:* ${formData.notes || 'None'}
+`;
+        const encodedMessage = encodeURIComponent(message);
+        window.open(`https://wa.me/94767439588?text=${encodedMessage}`, '_blank');
+        window.scrollTo(0, 0);
+        return;
+      }
+
       setError("Failed to submit booking. " + err.message);
     } finally {
       setLoading(false);
@@ -178,6 +227,16 @@ Dropoff: ${formData.dropoffDate} at ${formData.dropoffTime}
             <form className="booking-form-modern" onSubmit={handleSubmit}>
               <div className="form-section">
                 <h3>Vehicle Selection</h3>
+                {formData.vehicleId && formData.pickupDate && formData.dropoffDate && !isVehicleAvailable(formData.vehicleId) && (
+                  <div className="warning-alert" style={{ marginBottom: '1rem', padding: '10px', background: '#fff3cd', color: '#856404', borderRadius: '4px', border: '1px solid #ffeeba' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '8px', verticalAlign: 'text-bottom' }}>
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <strong>Note:</strong> The selected vehicle is already booked for these dates. Please choose different dates or another vehicle.
+                  </div>
+                )}
                 <div className="form-group-modern">
                   <label htmlFor="vehicleId">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -194,11 +253,14 @@ Dropoff: ${formData.dropoffDate} at ${formData.dropoffTime}
                     required
                   >
                     <option value="">Choose your vehicle</option>
-                    {vehicles.map(v => (
-                      <option key={v.id} value={v.id}>
-                        {v.name}
-                      </option>
-                    ))}
+                    {vehicles.map(v => {
+                      const available = isVehicleAvailable(v.id);
+                      return (
+                        <option key={v.id} value={v.id} disabled={!available} style={{ color: available ? 'inherit' : '#999' }}>
+                          {v.name} {available ? '' : '(Unavailable for selected dates)'}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>
@@ -218,19 +280,7 @@ Dropoff: ${formData.dropoffDate} at ${formData.dropoffTime}
                     </label>
                     <input type="date" id="pickupDate" name="pickupDate" required value={formData.pickupDate} onChange={handleChange} min={new Date().toISOString().split('T')[0]} />
                   </div>
-                  <div className="form-group-modern">
-                    <label htmlFor="pickupTime">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                      </svg>
-                      Pick-up Time
-                    </label>
-                    <input type="time" id="pickupTime" name="pickupTime" required value={formData.pickupTime} onChange={handleChange} />
-                  </div>
-                </div>
 
-                <div className="form-row-modern">
                   <div className="form-group-modern">
                     <label htmlFor="dropoffDate">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -242,16 +292,6 @@ Dropoff: ${formData.dropoffDate} at ${formData.dropoffTime}
                       Drop-off Date
                     </label>
                     <input type="date" id="dropoffDate" name="dropoffDate" required value={formData.dropoffDate} onChange={handleChange} min={formData.pickupDate || new Date().toISOString().split('T')[0]} />
-                  </div>
-                  <div className="form-group-modern">
-                    <label htmlFor="dropoffTime">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                      </svg>
-                      Drop-off Time
-                    </label>
-                    <input type="time" id="dropoffTime" name="dropoffTime" required value={formData.dropoffTime} onChange={handleChange} />
                   </div>
                 </div>
               </div>

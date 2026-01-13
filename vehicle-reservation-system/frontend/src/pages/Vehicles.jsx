@@ -85,10 +85,14 @@ export default function Vehicles() {
       const checks = await Promise.all(
         vehicles.map(async (vehicle) => {
           const bookings = await fetchBookingsForVehicle(vehicle.id);
-          const hasConflict = bookings.some((b) =>
+          const conflictingBooking = bookings.find((b) =>
             overlaps(bookingParams.startDate, bookingParams.endDate, b.startDate, b.endDate)
           );
-          return [vehicle.id, !hasConflict];
+
+          return [vehicle.id, {
+            available: !conflictingBooking,
+            reason: conflictingBooking ? `Booked until ${conflictingBooking.endDate}` : null
+          }];
         })
       );
 
@@ -110,11 +114,11 @@ export default function Vehicles() {
 
   const getSpecs = (id, capacity) => {
     const details = SPEC_DETAILS[id] || {
-        transmission: "Automatic",
-        luggage: "Standard",
-        fuel: "Petrol",
-        feature: "AC",
-        idealFor: "Travelers"
+      transmission: "Automatic",
+      luggage: "Standard",
+      fuel: "Petrol",
+      feature: "AC",
+      idealFor: "Travelers"
     };
     return {
       passengers: capacity,
@@ -145,7 +149,7 @@ export default function Vehicles() {
           <p>Choose from our carefully selected range of well-maintained vehicles for your Sri Lankan adventure</p>
         </div>
       </div>
-      
+
       <div className="container">
         {/* Book Your Journey Section */}
         <section className="book-journey-section" id="book-journey">
@@ -164,7 +168,7 @@ export default function Vehicles() {
                 <p>Select your preferences and check available vehicles</p>
               </div>
             </div>
-            
+
             <form className="book-journey-form" onSubmit={handleCheckAvailability}>
               <div className="form-row-book">
                 <div className="form-group-book">
@@ -177,12 +181,12 @@ export default function Vehicles() {
                     </svg>
                     Select Date
                   </label>
-                  <input 
+                  <input
                     id="journey-date"
-                    type="date" 
-                    required 
+                    type="date"
+                    required
                     value={bookingParams.startDate}
-                    onChange={e => setBookingParams({...bookingParams, startDate: e.target.value})}
+                    onChange={e => setBookingParams({ ...bookingParams, startDate: e.target.value })}
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
@@ -202,11 +206,11 @@ export default function Vehicles() {
                     type="date"
                     required
                     value={bookingParams.endDate}
-                    onChange={e => setBookingParams({...bookingParams, endDate: e.target.value})}
+                    onChange={e => setBookingParams({ ...bookingParams, endDate: e.target.value })}
                     min={bookingParams.startDate || new Date().toISOString().split('T')[0]}
                   />
                 </div>
-                
+
                 <div className="form-group-book">
                   <label htmlFor="journey-type">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -215,10 +219,10 @@ export default function Vehicles() {
                     </svg>
                     Vehicle Type
                   </label>
-                  <select 
+                  <select
                     id="journey-type"
                     value={bookingParams.type}
-                    onChange={e => setBookingParams({...bookingParams, type: e.target.value})}
+                    onChange={e => setBookingParams({ ...bookingParams, type: e.target.value })}
                   >
                     <option value="">All Types</option>
                     {Object.values(VEHICLE_TYPES).map(t => (
@@ -226,7 +230,7 @@ export default function Vehicles() {
                     ))}
                   </select>
                 </div>
-                
+
                 <button type="submit" className="btn-check-availability" disabled={checkingAvailability}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="11" cy="11" r="8"></circle>
@@ -235,7 +239,7 @@ export default function Vehicles() {
                   {checkingAvailability ? 'Checking...' : 'Check Availability'}
                 </button>
               </div>
-              
+
               <div className="booking-note-fleet">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -252,7 +256,9 @@ export default function Vehicles() {
           {vehicles.map(vehicle => {
             const specs = getSpecs(vehicle.id, vehicle.capacity);
             const availabilityKnown = Boolean(availabilityByVehicleId);
-            const isAvailable = availabilityKnown ? Boolean(availabilityByVehicleId[vehicle.id]) : true;
+            const status = availabilityKnown ? availabilityByVehicleId[vehicle.id] : { available: true, reason: null };
+            const isAvailable = status.available;
+
             return (
               <div key={vehicle.id} className="fleet-card-modern" id={vehicle.id}>
                 <div className="fleet-image-wrapper">
@@ -262,16 +268,16 @@ export default function Vehicles() {
                     <div className="availability-badge">Unavailable</div>
                   )}
                 </div>
-                
+
                 <div className="fleet-content">
                   <div className="fleet-header">
                     <h2>{vehicle.name}</h2>
                   </div>
-                  
+
                   <p className="fleet-description">
                     {vehicle.description || "A safe and comfortable ride for your journey across Sri Lanka."}
                   </p>
-                  
+
                   <div className="fleet-specs-grid">
                     <div className="spec-box">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -285,7 +291,7 @@ export default function Vehicles() {
                         <span className="spec-value">{specs.passengers}</span>
                       </div>
                     </div>
-                    
+
                     <div className="spec-box">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -296,7 +302,7 @@ export default function Vehicles() {
                         <span className="spec-value">{specs.transmission}</span>
                       </div>
                     </div>
-                    
+
                     <div className="spec-box">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M20 6H4l2 14h12l2-14z"></path>
@@ -307,7 +313,7 @@ export default function Vehicles() {
                         <span className="spec-value">{specs.luggage}</span>
                       </div>
                     </div>
-                    
+
                     <div className="spec-box">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"></path>
@@ -318,7 +324,7 @@ export default function Vehicles() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="fleet-features">
                     <div className="feature-highlight">
                       <strong>Key Feature:</strong> {specs.feature}
@@ -326,8 +332,13 @@ export default function Vehicles() {
                     <div className="feature-highlight">
                       <strong>Ideal For:</strong> {specs.idealFor}
                     </div>
+                    {status.reason && (
+                      <div className="unavailable-reason" style={{ color: '#dc3545', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                        <strong>Unavailable:</strong> {status.reason}
+                      </div>
+                    )}
                   </div>
-                  
+
                   <button
                     onClick={() => {
                       const query = new URLSearchParams();
@@ -338,11 +349,12 @@ export default function Vehicles() {
                     }}
                     className="btn-book-fleet"
                     disabled={availabilityKnown && !isAvailable}
+                    style={{ opacity: availabilityKnown && !isAvailable ? 0.6 : 1, cursor: availabilityKnown && !isAvailable ? 'not-allowed' : 'pointer' }}
                     title={availabilityKnown && !isAvailable ? 'Unavailable for selected dates' : undefined}
                   >
-                    {availabilityKnown && !isAvailable ? 'Unavailable for Dates' : `Book ${vehicle.name} Now`}
+                    {availabilityKnown && !isAvailable ? 'Unavailable' : `Book ${vehicle.name} Now`}
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                      <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                   </button>
                 </div>

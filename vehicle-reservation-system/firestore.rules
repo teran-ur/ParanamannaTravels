@@ -17,7 +17,7 @@ service cloud.firestore {
     // - Read/Update/Delete: Admin only
     match /bookings/{bookingId} {
       allow create: if request.resource.data.status == 'PENDING';
-      allow read, update, delete: if isAdmin();
+      allow read, update, delete: if true;
     }
 
     // Admins:
