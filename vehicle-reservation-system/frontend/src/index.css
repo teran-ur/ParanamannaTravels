@@ -45,6 +45,10 @@ img {
   display: block;
 }
 
+.text-center {
+  text-align: center;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -173,7 +177,7 @@ img {
 .hero-modern {
   background-color: var(--bg);
   padding: 6rem 0;
-  min-height: 80vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
 }

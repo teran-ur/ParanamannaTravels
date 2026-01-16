@@ -1,4 +1,5 @@
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 
 export default function About() {
@@ -6,6 +7,10 @@ export default function About() {
 
   return (
     <main className="page-container about-page">
+      <Helmet>
+        <title>CeylonExplorer | About Us - Trusted Vehicle Rental Service</title>
+        <meta name="description" content="Learn about CeylonExplorer, our mission, vision, and core values. We provide safe, reliable, and premium vehicle rental services in Sri Lanka." />
+      </Helmet>
       <div className="page-hero">
         <div className="container">
           <h1>About CeylonExplorer</h1>

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { fetchVehicles } from '../lib/firestore';
 import VehicleCard from '../components/VehicleCard';
 import { useNavigate } from 'react-router-dom';
@@ -76,6 +77,10 @@ export default function Home() {
 
   return (
     <main>
+      <Helmet>
+        <title>CeylonExplorer | Home - Premium Car Rental Sri Lanka</title>
+        <meta name="description" content="Welcome to CeylonExplorer. Rent premium vehicles with professional drivers for your journey across Sri Lanka. Experience comfort, freedom, and local expertise." />
+      </Helmet>
       {/* Hero */}
       <section className="hero-modern" ref={vantaRef}>
         <div className="container">
@@ -84,17 +89,7 @@ export default function Home() {
               <h1>Explore the Pearl of the Indian Ocean with <span className="highlight">Your Freedom</span></h1>
               <p className="hero-description">Reliable and comfortable rental cars for your unforgettable journey across Sri Lanka. Choose from our premium fleet and experience the island like never before.</p>
 
-              <div className="hero-cta-buttons">
-                <button className="btn-hero-primary" onClick={() => navigate('/fleet#book-journey')}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                  </svg>
-                  Check Availability
-                </button>
-              </div>
+
 
 
             </div>
@@ -198,7 +193,7 @@ export default function Home() {
             ))}
           </div>
           <div className="text-center" style={{ marginTop: '3rem' }}>
-            <button className="btn-secondary" onClick={() => navigate('/destinations')}>
+            <button className="btn-primary" onClick={() => navigate('/destinations')}>
               View All Destinations
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: '0.5rem' }}>
                 <path d="M5 12h14M12 5l7 7-7 7" />
@@ -221,29 +216,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Newsletter */}
-      <section className="section newsletter-section">
-        <div className="container">
-          <div className="newsletter-container">
-            <div className="newsletter-content">
-              <div className="newsletter-icon">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-              </div>
-              <div className="newsletter-text">
-                <h3>Get Travel Tips & Exclusive Deals</h3>
-                <p>Subscribe to our newsletter for special offers and travel inspiration</p>
-              </div>
-            </div>
-            <form className="newsletter-form" onSubmit={(e) => e.preventDefault()}>
-              <input type="email" placeholder="Enter your email address" required />
-              <button type="submit" className="btn-primary">Subscribe</button>
-            </form>
-          </div>
-        </div>
-      </section>
+
 
     </main>
   );

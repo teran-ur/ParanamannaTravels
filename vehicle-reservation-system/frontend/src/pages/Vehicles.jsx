@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { fetchBookingsForVehicle, fetchVehicles } from '../lib/firestore';
+import { Helmet } from 'react-helmet-async';
+import { fetchVehicles } from '../lib/firestore';
 import { useNavigate } from 'react-router-dom';
 import { VEHICLE_TYPES } from '../constants/vehicleTypes';
-import { overlaps } from '../lib/dateOverlap';
 
 /* 
   Enriching fallback/fetched data with extra static details for the design 
@@ -35,13 +35,6 @@ const SPEC_DETAILS = {
 export default function Vehicles() {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [checkingAvailability, setCheckingAvailability] = useState(false);
-  const [availabilityByVehicleId, setAvailabilityByVehicleId] = useState(null);
-  const [bookingParams, setBookingParams] = useState({
-    startDate: '',
-    endDate: '',
-    type: ''
-  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,56 +54,7 @@ export default function Vehicles() {
     }
   };
 
-  const handleCheckAvailability = async (e) => {
-    e.preventDefault();
-    if (!bookingParams.startDate) {
-      alert('Please select a date.');
-      return;
-    }
 
-    if (!bookingParams.endDate) {
-      alert('Please select an end date.');
-      return;
-    }
-
-    if (bookingParams.startDate > bookingParams.endDate) {
-      alert('End date must be the same as or after start date.');
-      return;
-    }
-
-    setCheckingAvailability(true);
-    setAvailabilityByVehicleId(null);
-
-    try {
-      const checks = await Promise.all(
-        vehicles.map(async (vehicle) => {
-          const bookings = await fetchBookingsForVehicle(vehicle.id);
-          const conflictingBooking = bookings.find((b) =>
-            overlaps(bookingParams.startDate, bookingParams.endDate, b.startDate, b.endDate)
-          );
-
-          return [vehicle.id, {
-            available: !conflictingBooking,
-            reason: conflictingBooking ? `Booked until ${conflictingBooking.endDate}` : null
-          }];
-        })
-      );
-
-      const nextAvailability = Object.fromEntries(checks);
-      setAvailabilityByVehicleId(nextAvailability);
-    } catch (err) {
-      console.error(err);
-      alert('Unable to check availability right now. Please try again.');
-    } finally {
-      setCheckingAvailability(false);
-    }
-
-    // Scroll to fleet section
-    const fleetSection = document.getElementById('fleet-vehicles');
-    if (fleetSection) {
-      fleetSection.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
 
   const getSpecs = (id, capacity) => {
     const details = SPEC_DETAILS[id] || {
@@ -143,6 +87,10 @@ export default function Vehicles() {
 
   return (
     <main className="page-container fleet-page">
+      <Helmet>
+        <title>CeylonExplorer | Our Fleet - Luxury & Economy Vehicles</title>
+        <meta name="description" content="Browse our premium fleet of vehicles including luxury cars, vans, and economy options. Well-maintained and comfortable rides for your Sri Lankan tour." />
+      </Helmet>
       <div className="page-hero">
         <div className="container">
           <h1>Our Premium Fleet</h1>
@@ -152,121 +100,18 @@ export default function Vehicles() {
 
       <div className="container">
         {/* Book Your Journey Section */}
-        <section className="book-journey-section" id="book-journey">
-          <div className="book-journey-card">
-            <div className="book-journey-header">
-              <div className="book-icon">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-              </div>
-              <div>
-                <h2>Book Your Journey</h2>
-                <p>Select your preferences and check available vehicles</p>
-              </div>
-            </div>
 
-            <form className="book-journey-form" onSubmit={handleCheckAvailability}>
-              <div className="form-row-book">
-                <div className="form-group-book">
-                  <label htmlFor="journey-date">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    Select Date
-                  </label>
-                  <input
-                    id="journey-date"
-                    type="date"
-                    required
-                    value={bookingParams.startDate}
-                    onChange={e => setBookingParams({ ...bookingParams, startDate: e.target.value })}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
-
-                <div className="form-group-book">
-                  <label htmlFor="journey-end-date">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                      <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    End Date
-                  </label>
-                  <input
-                    id="journey-end-date"
-                    type="date"
-                    required
-                    value={bookingParams.endDate}
-                    onChange={e => setBookingParams({ ...bookingParams, endDate: e.target.value })}
-                    min={bookingParams.startDate || new Date().toISOString().split('T')[0]}
-                  />
-                </div>
-
-                <div className="form-group-book">
-                  <label htmlFor="journey-type">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M5 17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-1"></path>
-                      <polygon points="12 15 17 21 7 21 12 15"></polygon>
-                    </svg>
-                    Vehicle Type
-                  </label>
-                  <select
-                    id="journey-type"
-                    value={bookingParams.type}
-                    onChange={e => setBookingParams({ ...bookingParams, type: e.target.value })}
-                  >
-                    <option value="">All Types</option>
-                    {Object.values(VEHICLE_TYPES).map(t => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <button type="submit" className="btn-check-availability" disabled={checkingAvailability}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.35-4.35"></path>
-                  </svg>
-                  {checkingAvailability ? 'Checking...' : 'Check Availability'}
-                </button>
-              </div>
-
-              <div className="booking-note-fleet">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
-                <span>Free cancellation up to 24 hours before pickup</span>
-              </div>
-            </form>
-          </div>
-        </section>
 
         {/* Fleet Vehicles Section */}
         <div id="fleet-vehicles" className="fleet-grid">
           {vehicles.map(vehicle => {
             const specs = getSpecs(vehicle.id, vehicle.capacity);
-            const availabilityKnown = Boolean(availabilityByVehicleId);
-            const status = availabilityKnown ? availabilityByVehicleId[vehicle.id] : { available: true, reason: null };
-            const isAvailable = status.available;
 
             return (
               <div key={vehicle.id} className="fleet-card-modern" id={vehicle.id}>
                 <div className="fleet-image-wrapper">
                   <img src={vehicle.imageUrl || "https://placehold.co/600x400"} alt={vehicle.name} />
                   <div className="fleet-badge">{vehicle.type}</div>
-                  {availabilityKnown && !isAvailable && (
-                    <div className="availability-badge">Unavailable</div>
-                  )}
                 </div>
 
                 <div className="fleet-content">
@@ -332,27 +177,15 @@ export default function Vehicles() {
                     <div className="feature-highlight">
                       <strong>Ideal For:</strong> {specs.idealFor}
                     </div>
-                    {status.reason && (
-                      <div className="unavailable-reason" style={{ color: '#dc3545', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                        <strong>Unavailable:</strong> {status.reason}
-                      </div>
-                    )}
                   </div>
 
                   <button
                     onClick={() => {
-                      const query = new URLSearchParams();
-                      if (bookingParams.startDate) query.set('startDate', bookingParams.startDate);
-                      if (bookingParams.endDate) query.set('endDate', bookingParams.endDate);
-                      const qs = query.toString() ? `?${query.toString()}` : '';
-                      navigate(`/book/${vehicle.id}${qs}`);
+                      navigate(`/book/${vehicle.id}`);
                     }}
                     className="btn-book-fleet"
-                    disabled={availabilityKnown && !isAvailable}
-                    style={{ opacity: availabilityKnown && !isAvailable ? 0.6 : 1, cursor: availabilityKnown && !isAvailable ? 'not-allowed' : 'pointer' }}
-                    title={availabilityKnown && !isAvailable ? 'Unavailable for selected dates' : undefined}
                   >
-                    {availabilityKnown && !isAvailable ? 'Unavailable' : `Book ${vehicle.name} Now`}
+                    Book {vehicle.name} Now
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>

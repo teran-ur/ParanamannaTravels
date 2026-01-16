@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchVehicles, createBooking, fetchAllActiveBookings } from '../lib/firestore';
 import { LOCATIONS } from '../constants/locations';
@@ -235,6 +236,10 @@ Dropoff: ${formData.dropoffDate}
 
   return (
     <main className="page-container booking-page">
+      <Helmet>
+        <title>CeylonExplorer | Book Your Journey - Secure Online Booking</title>
+        <meta name="description" content="Book your vehicle online with CeylonExplorer. Easy, secure, and fast booking process for your Sri Lankan tour vehicle." />
+      </Helmet>
       <div className="page-hero">
         <div className="container">
           <h1>Book Your Journey</h1>
@@ -496,12 +501,12 @@ Dropoff: ${formData.dropoffDate}
                   </svg>
                   +94 76 743 9588
                 </a>
-                <a href="mailto:info@ceylonexplorer.lk">
+                <a href="mailto:paranamannayomall@gmail.com">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                     <polyline points="22,6 12,13 2,6"></polyline>
                   </svg>
-                  info@ceylonexplorer.lk
+                  paranamannayomall@gmail.com
                 </a>
               </div>
             </div>
